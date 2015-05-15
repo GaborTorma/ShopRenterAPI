@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ShopRenterAPI
 {
-    public static class Settings
+    public static class ShopRenterAPISettings
     {
         public static string UserName;
         public static string Password;

@@ -1,4 +1,5 @@
 ﻿using ShopRenterAPI.Requests;
+using ShopRenterAPI.Models;
 
 namespace ShopRenterAPI
 {
@@ -15,10 +16,10 @@ namespace ShopRenterAPI
 
         public ShopRenter(string BaseAPIURL, string UserName, string Password, string LogFile = null)
         {
-            Settings.APIURL = BaseAPIURL;
-            Settings.UserName = UserName;
-            Settings.Password = Password;
-            Settings.LogFile = LogFile;
+            ShopRenterAPISettings.APIURL = BaseAPIURL;
+            ShopRenterAPISettings.UserName = UserName;
+            ShopRenterAPISettings.Password = Password;
+            ShopRenterAPISettings.LogFile = LogFile;
 
             Orders = new Orders();
             Coupons = new Coupons();

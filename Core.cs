@@ -52,10 +52,7 @@ namespace ShopRenterAPI
             Log("Response", response.Content);
             var obj = (object)response.Content;
             if (IsJson(obj))
-                obj = JsonConvert.DeserializeObject<T>(response.Content, new JsonSerializerSettings()
-                {
-                    NullValueHandling = NullValueHandling.Ignore
-                });
+                obj = JsonConvert.DeserializeObject<T>(response.Content, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore });
             else
                 if (Type != typeof(string))
                     if (Type.IsClass)
@@ -74,10 +71,10 @@ namespace ShopRenterAPI
 
         protected void Log(string Title, string Message)
         {
-            if (Settings.LogFile != null)
+            if (ShopRenterAPISettings.LogFile != null)
                 try
                 {
-                    System.IO.StreamWriter File = new System.IO.StreamWriter(Settings.LogFile, true);
+                    System.IO.StreamWriter File = new System.IO.StreamWriter(ShopRenterAPISettings.LogFile, true);
                     File.WriteLine(string.Format("{0} | {1}: {2}", DateTime.Now, Title, Message));
                     File.Close();
                 }
@@ -85,67 +82,12 @@ namespace ShopRenterAPI
                 { }
         }
 
-    /*    private static readonly Encoding encoding = Encoding.UTF8;
-
-        private static byte[] GetMultipartFormData(Dictionary<string, object> postParameters, string boundary)
-        {
-            Stream formDataStream = new System.IO.MemoryStream();
-            bool needsCLRF = false;
-
-            foreach (var param in postParameters)
-            {
-                // Thanks to feedback from commenters, add a CRLF to allow multiple parameters to be added.
-                // Skip it on the first parameter, add it to subsequent parameters.
-                if (needsCLRF)
-                    formDataStream.Write(encoding.GetBytes("\r\n"), 0, encoding.GetByteCount("\r\n"));
-
-                needsCLRF = true;
-
-                if (param.Value is FileParameter)
-                {
-                    FileParameter fileToUpload = (FileParameter)param.Value;
-
-                    // Add just the first part of this param, since we will write the file data directly to the Stream
-                    string header = string.Format("--{0}\r\nContent-Disposition: form-data; name=\"{1}\"; filename=\"{2}\"\r\nContent-Type: {3}\r\n\r\n",
-                        boundary,
-                        param.Key,
-                        fileToUpload.FileName ?? param.Key,
-                        fileToUpload.ContentType ?? "application/octet-stream");
-
-                    formDataStream.Write(encoding.GetBytes(header), 0, encoding.GetByteCount(header));
-
-                    // Write the file data directly to the Stream, rather than serializing it to a string.
-                    formDataStream.Write(fileToUpload.File, 0, fileToUpload.File.Length);
-                }
-                else
-                {
-                    string postData = string.Format("--{0}\r\nContent-Disposition: form-data; name=\"{1}\"\r\n\r\n{2}",
-                        boundary,
-                        param.Key,
-                        param.Value);
-                    formDataStream.Write(encoding.GetBytes(postData), 0, encoding.GetByteCount(postData));
-                }
-            }
-
-            // Add the end of the request.  Start with a newline
-            string footer = "\r\n--" + boundary + "--\r\n";
-            formDataStream.Write(encoding.GetBytes(footer), 0, encoding.GetByteCount(footer));
-
-            // Dump the Stream into a byte[]
-            formDataStream.Position = 0;
-            byte[] formData = new byte[formDataStream.Length];
-            formDataStream.Read(formData, 0, formData.Length);
-            formDataStream.Close();
-
-            return formData;
-        }*/
-
         public RequestResult RunRequest(string resource, string requestMethod, object body = null)
         {
-			string json = null;
+            string Query = null;
 			try
             {
-                var requestUrl = Settings.APIURL;
+                var requestUrl = ShopRenterAPISettings.APIURL;
 
                 if (resource.IndexOf("http") == 0)
                     requestUrl = resource;
@@ -164,7 +106,7 @@ namespace ShopRenterAPI
                 if (this.Proxy != null)
                     req.Proxy = this.Proxy;
 
-                req.Headers["Authorization"] = GetAuthHeader(Settings.UserName, Settings.Password);
+                req.Headers["Authorization"] = GetAuthHeader(ShopRenterAPISettings.UserName, ShopRenterAPISettings.Password);
                 req.PreAuthenticate = true;
 
                 req.Method = requestMethod; //GET POST PUT DELETE
@@ -173,23 +115,16 @@ namespace ShopRenterAPI
                 Log("requestMethod", requestMethod);
 
                 req.ContentLength = 0;
-                req.ContentType = "multipart/form-data";//"multiform/post-data";
+                req.ContentType = "application/x-www-form-urlencoded";
                 req.Expect = string.Empty;
                 
                 if (body != null)
                 {
-                    //json = JsonConvert.SerializeObject(body, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore });
-                    //object[] data = new object[1] { body };
-                    //json = HttpBuildQueryHelper.Format(HttpBuildQueryHelper.Convert(data), string.Empty);*/
-                    Log("body", json);
+                    Query = JsonConvertQuery.SerializeObject(body, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore }, "data");
+                 //   Query = "status=1";
+                    Log("body", Query);
 
-                    byte[] formData = Encoding.UTF8.GetBytes("data%5Bcode%5D=TESZT&data%5Bstatus%5D=1");
-                    /*Dictionary<string, object> Data = new Dictionary<string, object>();
-                    Data.Add("data[code]","TESZT");
-                    Data.Add("data[status]","1");
-                    string formDataBoundary = String.Format("----------{0:N}", Guid.NewGuid());
-                    string contentType = "multipart/form-data; boundary=" + formDataBoundary;
-                    byte[] formData = GetMultipartFormData(Data, formDataBoundary);*/
+                    byte[] formData = Encoding.UTF8.GetBytes(Query);
                     
                     req.ContentLength = formData.Length;
 
@@ -212,7 +147,7 @@ namespace ShopRenterAPI
             }
             catch (WebException ex)
             {
-				throw new WebException(ex.Message + " " + ex.Response.Headers.ToString() + Environment.NewLine + json, ex);
+                throw new WebException(ex.Message + " " + ex.Response.Headers.ToString() + Environment.NewLine + Query, ex);
             }
         }
 
@@ -256,21 +191,6 @@ namespace ShopRenterAPI
         {
             string auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Format("{0}:{1}", userName, password)));
             return string.Format("Basic {0}", auth);
-        }
-    }
-
-    public class FileParameter
-    {
-        public byte[] File { get; set; }
-        public string FileName { get; set; }
-        public string ContentType { get; set; }
-        public FileParameter(byte[] file) : this(file, null) { }
-        public FileParameter(byte[] file, string filename) : this(file, filename, null) { }
-        public FileParameter(byte[] file, string filename, string contenttype)
-        {
-            File = file;
-            FileName = filename;
-            ContentType = contenttype;
         }
     }
 }

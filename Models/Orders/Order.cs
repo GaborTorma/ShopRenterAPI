@@ -144,15 +144,6 @@ namespace ShopRenterAPI.Models
         public string PickPackPontShopCode { get; set; }
 
         [JsonProperty("orderTotals")]
-        public BaseList<OrderTotal> _OrderTotals { get; set; }
-
-        [JsonIgnore]
-        public List<OrderTotal> OrderTotals
-        {
-            get
-            {
-                return _OrderTotals.Items;
-            }
-        }
+        public List<OrderTotal> OrderTotals { get; set; }
     }
 }
